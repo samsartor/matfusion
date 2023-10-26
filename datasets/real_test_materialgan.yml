@@ -1,0 +1,9 @@
+resolution: 256
+dirs:
+  - images: materialgan_real_inputs
+loader: !Images
+  # not entirely clear what this should be, probably 45 degree FOV
+  distance: 2.41
+  gamma: 2.2
+  # this is the center-lit image in each directory
+  filename: 00.png

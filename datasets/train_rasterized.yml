@@ -1,0 +1,17 @@
+resolution: 256
+dirs:
+  - svbrdfs: inria_svbrdfs
+    svbrdf_mode: "part/name_part"
+    texture_gamma: 1.0
+    count: 199068
+  - svbrdfs: cc0_svbrdfs
+    svbrdf_mode: "part/name_part"
+    texture_gamma: 1.0
+    count: 30032
+  - svbrdfs: mixed_svbrdfs
+    svbrdf_mode: "part/name_part"
+    texture_gamma: 1.0
+    count: 98211
+loader: !Rasterized
+  # we randomize FOV with the camera distance sampled from a gamma distribution
+  distance: !gamma_sampled [2.0, 2.0]

@@ -1,0 +1,8 @@
+resolution: 256
+dirs:
+  - svbrdfs: test_svbrdfs
+    svbrdf_mode: "name/part"
+    texture_gamma: 2.2
+    count: 50
+loader: !Rasterized
+  distance: !constant 4.0

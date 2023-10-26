@@ -1,0 +1,7 @@
+**/__pycache__/
+.ipynb_checkpoints/
+*.npy
+*.blend1
+wandb/
+results/
+checkpoints

@@ -1,0 +1,4 @@
+*.blend1
+data
+__pycache__
+svbrdf-renders/

@@ -1,0 +1,7 @@
+resolution: 256
+dirs:
+  - images: real_test_lookahead
+loader: !Images
+  # not entirely clear what this should be, probably 45 degree FOV
+  distance: 2.41
+  gamma: 2.2
