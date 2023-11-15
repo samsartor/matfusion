@@ -4,9 +4,8 @@ import math
 import ffmpegio
 import imageio
 import wandb
-import pickle
-import os
 import io
+from pathlib import Path
 from collections import defaultdict
 
 
@@ -181,10 +180,13 @@ class ResultsReport(Report):
     def video(self, path, img, fps=30, **kwargs):
         self.add(path, ('video', imbytes(img), fps), **kwargs)
 
-    def submit(self, **kwargs):
-        os.makedirs(self.dir, exist_ok=True)
+    def submit(self, step=None, **kwargs):
+        submit_path: Path = self.dir
+        if step is not None:
+            submit_path = submit_path / str(step)
+        submit_path.mkdir(parents=True)
         for (path, item) in self.contents.items():
-            path = self.dir / path.replace('/', '_')
+            path = submit_path / path.replace('/', '_')
             if isinstance(item, tuple) and item[0] in ('image', 'video'):
                 imageio.v3.imwrite(
                     path.with_name(path.name + '.webp'),

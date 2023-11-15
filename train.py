@@ -123,6 +123,8 @@ if args.finetune_checkpoint is not None:
 if args.resume_checkpoint is not None:
     train.load_resume_checkpoint(args.resume_checkpoint)
 
+train.replicate()
+
 checkpoint_path.mkdir(parents=True, exist_ok=True)
 (checkpoint_path / 'mode.json').write_text(json.dumps(mode, indent=2))
 (checkpoint_path / 'model_summary.txt').write_text(model_table)

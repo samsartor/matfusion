@@ -158,7 +158,7 @@ def prepare_batch(batch, mode):
     return x, y, shape
 
 
-@partial(func_map, static_argnames=['dif'])
+@partial(func_map, static_argnums=4)
 def generator_training_step_impl(gen_state, x, y, key, dif: Diffusion):
     def loss_fn(gen_params):
         loss, detailed_loss = dif.loss(
@@ -185,7 +185,7 @@ def generator_step_impl(gen_state, batch, key, mode):
         loss_keys = jax.random.split(key, num=x.shape[0])
     else:
         loss_keys = key
-    gen_state, loss = generator_training_step_impl(gen_state, x, y, loss_keys, dif=dif)
+    gen_state, loss = generator_training_step_impl(gen_state, x, y, loss_keys, dif)
     return gen_state, loss
 
 
@@ -647,7 +647,6 @@ class Model:
             apply_ema=partial(apply_ema, accumulation=self.accumulation),
         )
         self.gen_state = self.gen_state.zero_ema()
-        self.gen_state = func_replicate(self.gen_state)
 
     def load_resume_checkpoint(self, path: Path):
         assert self.gen_state is not None, 'must init model before restoring'

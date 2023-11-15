@@ -13,8 +13,8 @@ from jax import Array
 
 from .net.mine import batched_match_reflectance
 
-
-distributed = os.environ.get('JAX_DISTRIBUTED') == '1'
+# Putting these in this file is stupid, but it resolves an import cycle we would otherwise face
+distributed = os.environ.get('JAX_DISTRIBUTED') != '0'
 if distributed:
     func_map = (lambda fun, static_argnums: jax.pmap(fun, axis_name='devices', static_broadcasted_argnums=static_argnums))
     func_mean = (lambda x: lax.pmean(x, 'devices'))
@@ -95,7 +95,7 @@ class Diffusion:
 
     @classmethod
     def from_mode(cls, mode: Any) -> 'Diffusion':
-        return cls(            
+        return cls(
             timestep_mult=mode['timestep_mult'],
             timestep_channels=mode['timestep_channels'],
             condition=mode['condition'],
@@ -104,7 +104,7 @@ class Diffusion:
 
     @cached_property
     def betas(self) -> Array:
-        betas = jnp.linspace(self.beta_start, self.beta_end, num=self.num_train_steps) 
+        betas = jnp.linspace(self.beta_start, self.beta_end, num=self.num_train_steps)
         if self.zero_snr:
             # Zero SNNR fix, based on rescale_zero_terminal_snr in huggingface diffusers
             alphas = 1.0 - betas
