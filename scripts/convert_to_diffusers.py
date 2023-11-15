@@ -11,9 +11,10 @@ if __name__ == '__main__':
     jax.config.update('jax_platform_name', 'cpu')
 
 import jax.numpy as jnp
-from model import Model, modes
-from pipeline import Diffusion
-from net.resnet import ResNetBackbone, ConvnextBlock
+from matfusion_jax.model import Model
+from matfusion_jax.pipeline import Diffusion
+from matfusion_jax.net.mine import MyNoiseModel
+from matfusion_jax.net.resnet import ResNetBackbone, ConvnextBlock
 from jax.tree_util import tree_map, tree_flatten_with_path
 from flax import linen as nn
 from copy import deepcopy
@@ -115,27 +116,21 @@ if __name__ == '__main__':
     jax.config.update('jax_platform_name', 'cpu')
 
     parser = argparse.ArgumentParser(description='Convert a MatFusion model for use by huggingface diffusers.')
-    parser.add_argument('mode', type=str, choices=modes.keys())
+    parser.add_argument('input', type=Path)
     parser.add_argument('output', type=Path)
-    parser.add_argument('--checkpoint', type=str)
-    parser.add_argument('--ema', type=lambda x: x in ['1', 'true', 'True'], default=True)
     parser.add_argument('--print_layers', action='store_true')
     parser.add_argument('--verify', action='store_true')
     parser.add_argument('--verify-count', type=int, default=1)
     args = parser.parse_args()
 
-    mode = args.mode
-    jax_model = Model(256, mode)
-    if args.checkpoint is not None:
-        jax_model.load_checkpoint(prefix=args.checkpoint, params_only=True, ema=args.ema)
-        jax_params = jax_model.gen_state.eval_params
-    else:
-        jax_params = jax_model.gen_state.eval_params
+    jax_model = Model.from_checkpoint(args.input)
+    assert jax_model.unreplicated_gen_state is not None
+    jax_params = jax_model.unreplicated_gen_state.eval_params
     if hasattr(jax_params, 'unfreeze'):
         jax_params_mut = jax_params.unfreeze()
     else:
         jax_params_mut = deepcopy(jax_params)
-    jax_net = modes[mode]['noise_model'](training=False)
+    jax_net = MyNoiseModel(**jax_model.mode['noise_model'], training=False)
 
     total_params = 0
     for (name, params) in tree_flatten_with_path(jax_params)[0]:
@@ -152,18 +147,18 @@ if __name__ == '__main__':
             time_embedding_type="positional",
             flip_sin_to_cos=False,
             down_block_types=tuple(
-                block_type(jax_net.block, jax_net.get_use_self_attn()[i], 'Down')
+                block_type(jax_net.block, jax_net.use_self_attn(i), 'Down')
                 for i in range(len(jax_net.features))
             ),
             mid_block_type='ConvnextMidBlock2D',
             up_block_types=tuple(
-                block_type(jax_net.block, jax_net.get_use_self_attn()[i], 'Up')
+                block_type(jax_net.block, jax_net.use_self_attn(i), 'Up')
                 for i in reversed(range(len(jax_net.features)))
             ),
             block_out_channels=jax_net.features,
             layers_per_block=jax_net.layers_per,
-            act_fn=jax_net.activation.__name__,
-            mid_act_fn=None if jax_net.mid_activation is None else jax_net.mid_activation.__name__,
+            act_fn=jax_net.activation,
+            mid_act_fn=None if jax_net.mid_activation is None else jax_net.mid_activation,
             attention_head_dim=ResNetBackbone.num_head_channels,
             convnext_channels_mult=ConvnextBlock.feature_mult,
             convnext_time_embedding_activation=jax_net.cond_activation,
@@ -188,11 +183,7 @@ if __name__ == '__main__':
     if not args.verify:
         exit(0)
 
-    dif = Diffusion(
-        mode,
-        condition=modes[mode]['condition'],
-        timestep_channels=modes[mode]['timestep_channels'],
-    )
+    dif = Diffusion.from_mode(jax_model.mode)
     jax_net_apply = nn.jit(lambda n, *args: n.apply(*args))
     pt_model = torch.compile(pt_model)
     for _ in range(args.verify_count):
@@ -203,14 +194,14 @@ if __name__ == '__main__':
             jax_net,
             {'params': jax_params},
             jnp.array(test_input),
-            dif.batched_sincos_encode(jnp.array(test_t * modes[mode]['timestep_mult'])),
+            dif.batched_sincos_encode(jnp.array(test_t * jax_model.mode['timestep_mult'])),
         ))
         assert np.all(np.isfinite(test_output_j))
         print('Running PyTorch diffusion')
         # [b, c, w, h] <-> [b, w, h, c]
         test_output_p = np.transpose(pt_model(
             torch.from_numpy(np.transpose(test_input, (0, 3, 1, 2))),
-            torch.from_numpy(test_t * modes[mode]['timestep_mult']),
+            torch.from_numpy(test_t * jax_model.mode['timestep_mult']),
         ).sample.numpy(), (0, 2, 3, 1))
         assert np.all(np.isfinite(test_output_p))
 

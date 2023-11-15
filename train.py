@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from time import ctime, time_ns
 from typing import Any
+from ast import literal_eval
 
 import flax
 import wandb
@@ -21,18 +22,8 @@ flax.config.update('flax_return_frozendict', False)
 
 
 def override_pair(x: str) -> tuple[str, Any]:
-    (k, v) = x.split('=')
-    if v in ['true', 'True']:
-        v = True
-    elif v in ['false', 'False']:
-        v = False
-    elif v in ['none', 'None', 'nothing']:
-        v = None
-    else:
-        try:
-            v = float(v)
-        except ValueError:
-            pass
+    (k, v) = x.split('=', 1)
+    v = literal_eval(v)
     return k, v
 
 

@@ -58,6 +58,7 @@ class Checkpointer:
             tmp_path = path / 'checkpoint_tmp.msgpack'
         else:
             tmp_path = path / f'checkpoint_{step}.msgpack'
+        item = serialization.to_state_dict(item)
         tmp_path.write_bytes(serialization.msgpack_serialize(item))
         final_path = path / 'checkpoint.msgpack'
         final_path.unlink(missing_ok=True)

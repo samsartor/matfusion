@@ -21,12 +21,12 @@ SVBRDF estimation from photographs for three different lighting conditions (dire
 You will need Git, Python, and Conda on a system with at least CUDA 11 and CUDNN 8.2. This code is only tested on Linux, but Windows and MacOS may be usable with some tweaks.
 
 ```sh
-git clone github.com/samsartor/matfusion && cd matfusion`
-git submodule update --init --recursive`
-conda env create -f environment.yml`
-conda activate matfusion`
-pip install -e matfusion_diffusers`
-ipython kernel install --user --name=matfusion`
+git clone 'https://github.com/samsartor/matfusion' && cd matfusion
+git submodule update --init --recursive
+conda env create -f environment.yml
+conda activate matfusion
+pip install -e matfusion_diffusers
+ipython kernel install --user --name=matfusion
 ```
 
 Before running a notebook in Jupyter, make sure to set your kernel to "matfusion".
@@ -194,7 +194,7 @@ python train.py \
     - `compress_exrs.jl` is a Julia script for compressing large numbers of EXR files
     - `integrate_normals.jl` is a Julia script for integrating normal maps to produce heightmaps
     - `convert_to_diffusers.py` can convert our checkpoint files into huggingface-compatable checkpoint files
-    - `prune_checkpoint_*.py` removes checkpointed parameters that are not needed for inference
+    - `prune_checkpoint.py` removes checkpointed parameters that are not needed for inference
     - `render_synthetic/` has our synthetic blender scenes and related python scripts
 - `datasets/` contains the various datasets and corresponding YAML specifications
 - `checkpoints/` can contain various pretrained models

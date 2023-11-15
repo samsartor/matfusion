@@ -2,26 +2,13 @@ import argparse
 import json
 import math
 from pathlib import Path
-from typing import Any, Tuple, Callable, cast
+from typing import Any, Callable, cast
+from ast import literal_eval
 
 
-def override_pair(x: str) -> Tuple[str, Any]:
-    (k, v) = x.split('=')
-    if v in ['true', 'True']:
-        v = True
-    elif v in ['false', 'False']:
-        v = False
-    elif v in ['none', 'None', 'nothing']:
-        v = None
-    elif v.endswith('i'):
-        v = int(v[:-1])
-    elif v.endswith('f'):
-        v = float(v[:-1])
-    else:
-        try:
-            v = float(v)
-        except ValueError:
-            pass
+def override_pair(x: str) -> tuple[str, Any]:
+    (k, v) = x.split('=', 1)
+    v = literal_eval(v)
     return k, v
 
 
