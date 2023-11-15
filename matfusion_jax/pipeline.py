@@ -27,52 +27,9 @@ else:
     func_unreplicate = (lambda x: x)
 
 
-loaded_clip = None
-
-def load_clip():
-    global loaded_clip
-    if loaded_clip is None:
-        import clip_jax
-        loaded_clip = clip_jax.load('ViT-B/32', 'cpu')
-    return loaded_clip
-
-@jax.jit
-def clip_image_fn(*args, **kwargs):
-    image_fn, text_fn, params, _ = load_clip()
-    return image_fn(params, *args, **kwargs)
-
-@jax.jit
-def clip_text_fn(*args, **kwargs):
-    image_fn, text_fn, params, _ = load_clip()
-    return text_fn(params, *args, **kwargs)
-
-def clip_tokenize(*args, **kwargs):
-    import clip_jax
-    return clip_jax.tokenize(*args, **kwargs)
-    
-
-def clip_preprocess(img):
-    img = img[:, 16:-16, 16:-16, 0:3]
-    img = img - jnp.array([
-        0.48145466,
-        0.4578275,
-        0.40821073
-      ])
-    img = img / jnp.array([
-        0.26862954,
-        0.26130258,
-        0.27577711
-    ])
-    img = jnp.transpose(img, (0, 3, 1, 2))
-    assert img.shape[1:] == (3, 224, 224)
-    return img
-
-
 class DiffusionModel(struct.PyTreeNode):
     main_state: Any
     main_vars: dict[str, Any]
-    ctrl_state: Optional[Any] = None
-    ctrl_vars: Optional[dict[str, Any]] = None
     null_state: Optional[Any] = None
     null_vars: Optional[dict[str, Any]] = None
 
@@ -100,16 +57,7 @@ def diffusion_step_impl(
     model: DiffusionModel,
     noisy, sample, input, encoded, key, guidance_scale,
 ):
-    if model.ctrl_state is not None:
-        key, dropout_key = jax.random.split(key)
-        model_args, _ = model.ctrl_state.apply_fn(
-            model.ctrl_vars,
-            jnp.concatenate((noisy, input), 3),
-            encoded,
-            rngs={'dropout': dropout_key},
-        )
-    else:
-        model_args = dict()
+    model_args = dict()
 
     key, dropout_key = jax.random.split(key)
     model_output = model.main_state.apply_fn(
@@ -268,8 +216,6 @@ class Diffusion:
         self,
         model_state,
         model_vars: dict[str, Array],
-        ctrl_state,
-        ctrl_vars: Optional[dict[str, Array]],
         input: Array,
         svbrdf: Array,
         key,
@@ -286,26 +232,13 @@ class Diffusion:
 
         if self.condition == 'direct':
             x = jnp.concatenate((x, input), 3)
-        elif self.condition == 'clip':
-            embedding = clip_image_fn(clip_preprocess(input))
 
         if embedding is None:
             embedding = encoded_t
         else:
             embedding = jnp.concatenate((encoded_t, embedding), axis=1)
 
-        if ctrl_state is not None:
-            # jlprint(ctrl_state.tabulate(ctrl_vars, input, encoded_t))
-            # jlprint(ctrl_vars['params']['Dense_0'], input.shape, encoded_t.shape)
-            key, dropout_key = jax.random.split(key)
-            model_args = ctrl_state.apply_fn(
-                ctrl_vars,
-                jnp.concatenate((x, input), 3),
-                encoded_t,
-                rngs={'dropout': dropout_key},
-            )
-        else:
-            model_args = dict()
+        model_args = dict()
 
         key, dropout_key = jax.random.split(key)
         y_est = model_state.apply_fn(
@@ -331,11 +264,6 @@ class Diffusion:
         embedding = jnp.expand_dims(encoded_t, 0)
         if self.condition == 'direct':
             x = jnp.concatenate((sample, input), 3)
-        elif self.condition == 'clip':
-            x = sample
-            assert input.shape == (sample.shape[0], 512)
-            embedding = jnp.broadcast_to(embedding, (input.shape[0], embedding.shape[1]))
-            embedding = jnp.concatenate((embedding, input), axis=1)
         elif self.condition == 'none':
             x = sample
         else:
@@ -357,12 +285,6 @@ class Diffusion:
             timestep = self.num_train_steps - 1
         else:
             timestep = settings.starting_timestep
-
-        if self.condition == 'clip':
-            if settings.text is not None:
-                input = clip_text_fn(clip_tokenize(settings.text))
-            else:
-                input = clip_image_fn(clip_preprocess(input))
 
         sample = initial
         processed = callback(
@@ -422,12 +344,6 @@ class Diffusion:
             timestep = self.num_train_steps - 1
         else:
             timestep = settings.starting_timestep
-
-        if self.condition == 'clip':
-            if settings.text is not None:
-                input = clip_text_fn(clip_tokenize(settings.text))
-            else:
-                input = clip_image_fn(clip_preprocess(input))
 
         sample = initial
         processed = callback(
@@ -503,12 +419,6 @@ class Diffusion:
         else:
             timestep = settings.starting_timestep
 
-        if self.condition == 'clip':
-            if settings.text is not None:
-                input = clip_text_fn(clip_tokenize(settings.text))
-            else:
-                input = clip_image_fn(clip_preprocess(input))
-
         sample = initial
         processed = callback(
             initial,
@@ -572,12 +482,6 @@ class Diffusion:
             timestep = self.num_train_steps - 1
         else:
             timestep = settings.starting_timestep
-
-        if self.condition == 'clip':
-            if settings.text is not None:
-                input = clip_text_fn(clip_tokenize(settings.text))
-            else:
-                input = clip_image_fn(clip_preprocess(input))
 
         sample = initial
         processed = callback(

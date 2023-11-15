@@ -136,7 +136,7 @@ batched_train_info = defaultdict(list)
 pbar = None
 
 for epoc_num in range(1, args.epocs+1):
-    if mode['condition'] == 'none' and mode['control_model'] is None:
+    if mode['condition'] == 'none':
         train.training_uncon_evaluate_step(
             train_vis,
             steps=args.test_steps,

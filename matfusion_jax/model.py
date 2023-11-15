@@ -31,7 +31,6 @@ from .config import (
     uncenter_img,
     uncenter_svbrdf,
 )
-from .net.mine import MyControlModel, MyNoiseModel
 from .pipeline import (
     Diffusion,
     DiffusionModel,
@@ -42,6 +41,7 @@ from .pipeline import (
     func_replicate,
     func_unreplicate,
 )
+from .net.mine import MyNoiseModel
 from .vis import Report
 
 
@@ -164,7 +164,6 @@ def generator_training_step_impl(gen_state, x, y, key, dif: Diffusion):
         loss, detailed_loss = dif.loss(
             gen_state,
             {'params': gen_params},
-            None, None,
             x, y, key
         )
         return loss, detailed_loss
@@ -176,27 +175,7 @@ def generator_training_step_impl(gen_state, x, y, key, dif: Diffusion):
     ), detailed_loss
 
 
-@partial(func_map, static_argnames=['dif'])
-def control_training_step_impl(gen_state, ctrl_state, x, y, key, dif: Diffusion):
-
-    def loss_fn(ctrl_params):
-        loss, detailed_loss = dif.loss(
-            gen_state,
-            {'params': gen_state.eval_params},
-            ctrl_state,
-            {'params': ctrl_params},
-            x, y, key
-        )
-        return loss, detailed_loss
-
-    grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
-    (eps_loss, detailed_loss), grads = func_mean(grad_fn(ctrl_state.params))
-    return ctrl_state.apply_gradients(
-        grads=grads,
-    ), detailed_loss
-
-
-def generator_step_impl(gen_state, ctrl_state, batch, key, mode):
+def generator_step_impl(gen_state, batch, key, mode):
     dif = Diffusion.from_mode(mode)
     x, y, batch_shape = prepare_batch(batch, mode)
 
@@ -206,14 +185,11 @@ def generator_step_impl(gen_state, ctrl_state, batch, key, mode):
         loss_keys = jax.random.split(key, num=x.shape[0])
     else:
         loss_keys = key
-    if ctrl_state is None:
-        gen_state, loss = generator_training_step_impl(gen_state, x, y, loss_keys, dif=dif)
-    else:
-        ctrl_state, loss = control_training_step_impl(gen_state, ctrl_state, x, y, loss_keys, dif=dif)
-    return gen_state, ctrl_state, loss
+    gen_state, loss = generator_training_step_impl(gen_state, x, y, loss_keys, dif=dif)
+    return gen_state, loss
 
 
-def evaluate_impl(gen_state, ctrl_state, null_state, batch, key, noise_keys, settings, mode):
+def evaluate_impl(gen_state, null_state, batch, key, noise_keys, settings, mode):
     x, y, batch_shape = prepare_batch(batch, mode)
     shape = (*batch_shape, mode['channels'])
     dif = Diffusion.from_mode(mode)
@@ -301,8 +277,6 @@ def evaluate_impl(gen_state, ctrl_state, null_state, batch, key, noise_keys, set
         DiffusionModel(
             main_state=gen_state,
             main_vars={'params': gen_state.eval_params},
-            ctrl_state=ctrl_state,
-            ctrl_vars=None if ctrl_state is None else {'params': ctrl_state.params},
             null_state=null_state,
             null_vars=None if null_state is None else {'params': null_state.params},
         ),
@@ -315,7 +289,7 @@ def evaluate_impl(gen_state, ctrl_state, null_state, batch, key, noise_keys, set
     return tree_map(np.array, info)
 
 
-def training_evaluate_step_impl(gen_state, ctrl_state, batch, key, noise_keys, settings, vis, names, mode):
+def training_evaluate_step_impl(gen_state, batch, key, noise_keys, settings, vis, names, mode):
     x, y, batch_shape = prepare_batch(batch, mode)
     shape = (*batch_shape, mode['channels'])
     dif = Diffusion.from_mode(mode)
@@ -355,8 +329,6 @@ def training_evaluate_step_impl(gen_state, ctrl_state, batch, key, noise_keys, s
         DiffusionModel(
             main_state=gen_state,
             main_vars={'params': gen_state.eval_params},
-            ctrl_state=ctrl_state,
-            ctrl_vars=None if ctrl_state is None else {'params': ctrl_state.params},
         ),
         x,
         initial,
@@ -428,7 +400,7 @@ def training_evaluate_step_impl(gen_state, ctrl_state, batch, key, noise_keys, s
             )
 
 
-def uncon_evaluate_step_impl(gen_state, ctrl_state, shape, key, noise_keys, settings, vis, mode):
+def uncon_evaluate_step_impl(gen_state, shape, key, noise_keys, settings, vis, mode):
     dif = Diffusion.from_mode(mode)
 
     def info_callback(svbrdf, output, sample=None, **kwargs):
@@ -463,8 +435,6 @@ def uncon_evaluate_step_impl(gen_state, ctrl_state, shape, key, noise_keys, sett
         DiffusionModel(
             main_state=gen_state,
             main_vars={'params': gen_state.eval_params},
-            ctrl_state=ctrl_state,
-            ctrl_vars=None if ctrl_state is None else {'params': ctrl_state.params},
         ),
         None,
         initial,
@@ -569,9 +539,6 @@ class Model:
     gen_state: Optional[TrainState]
     """The diffusion noise model"""
 
-    control_state: Optional[TrainState]
-    """ControlNet for the noise model"""
-
     null_state: Optional[TrainState]
     """Optional unconditional noise model to support classifier free guidance scale"""
 
@@ -603,7 +570,6 @@ class Model:
         self.init_rng = jax.random.PRNGKey(init_key)
 
         self.gen_state = None
-        self.control_state = None
         self.null_state = None
 
     @classmethod
@@ -621,7 +587,6 @@ class Model:
         any new trainable parameters, even if those will be zero initilized.
         """
         assert self.gen_state is None, 'noise model is already initilized'
-        assert self.control_state is None, 'controlnet is already initilized'
 
         print('creating noise model')
         gen_init_net = MyNoiseModel(**self.mode['noise_model'], training=False)
@@ -644,26 +609,6 @@ class Model:
         )
         self.null_state = None
 
-        if self.mode['control_model'] is not None:
-            print('creating controlnet models')
-            control_init_net = MyControlModel(**self.mode['control_model'], training=False)
-            control_net = MyControlModel(**self.mode['control_model'], training=True)
-
-            print('creating controlnet parameters')
-            self.init_rng, control_init_rng = jax.random.split(self.init_rng)
-            control_init = jax.jit(control_init_net.init)(
-                {'params': control_init_rng},
-                jnp.ones(self.control_shape),
-                jnp.ones((1, self.embedding_channels)),
-            )
-
-            print('creating controlnet train state')
-            self.control_state = TrainState.create(
-                apply_fn=control_net.apply,
-                params=control_init['params'],
-                tx=pick_optimizer(self.mode, self.accumulation),
-                apply_ema=partial(apply_ema, accumulation=self.accumulation),
-            )
 
     def load_finetune_checkpoint(self, path, use_ema=True):
         """
@@ -695,44 +640,21 @@ class Model:
                 print('missing path', path)
                 return x
 
-        if self.control_state is not None:
-            new_gen_state = TrainState.create(
-                apply_fn=self.gen_state.apply_fn,
-                params=starting_gen_params,
-                tx=pick_optimizer(self.mode, self.accumulation),
-                apply_ema=partial(apply_ema, accumulation=self.accumulation),
-            )
-
-            print('recreating controlnet train state from model')
-            self.control_state = TrainState.create(
-                apply_fn=self.control_state.apply_fn,
-                params=tree_map_with_path(gen_param_mapper, self.gen_state.params),
-                tx=pick_optimizer(self.mode, self.accumulation),
-                apply_ema=partial(apply_ema, accumulation=self.accumulation),
-            )
-
-            self.control_state.zero_ema()
-            self.control_state = func_replicate(self.control_state)
-            self.gen_state = func_replicate(new_gen_state)
-        else:
-            self.gen_state = TrainState.create(
-                apply_fn=self.gen_state.apply_fn,
-                params=tree_map_with_path(gen_param_mapper, self.gen_state.params),
-                tx=pick_optimizer(self.mode, self.accumulation),
-                apply_ema=partial(apply_ema, accumulation=self.accumulation),
-            )
-            self.gen_state.zero_ema()
-            self.gen_state = func_replicate(self.gen_state)
+        self.gen_state = TrainState.create(
+            apply_fn=self.gen_state.apply_fn,
+            params=tree_map_with_path(gen_param_mapper, self.gen_state.params),
+            tx=pick_optimizer(self.mode, self.accumulation),
+            apply_ema=partial(apply_ema, accumulation=self.accumulation),
+        )
+        self.gen_state = self.gen_state.zero_ema()
+        self.gen_state = func_replicate(self.gen_state)
 
     def load_resume_checkpoint(self, path: Path):
         assert self.gen_state is not None, 'must init model before restoring'
 
         loaded_mode = json.loads((path / 'mode.json').read_text())
         assert self.mode == loaded_mode, 'loaded mode does not match'
-        if self.control_state is None:
-            self.control_state = ckptr.restore(path, item=self.control_state)
-        else:
-            self.gen_state = ckptr.restore(path, item=self.gen_state)
+        self.gen_state = ckptr.restore(path, item=self.gen_state)
         self.replicated = False
 
     def load_eval_checkpoint(
@@ -756,39 +678,21 @@ class Model:
         else:
             self.null_state = None
 
-        if self.mode['control_model'] is not None:
-            control_net = MyControlModel(**self.mode['control_model'], training=False)
-            self.control_state = TrainState.create(
-                apply_fn=control_net.apply,
-                params={} if use_ema else base_dict['params'],
-                ema=base_dict['ema'] if use_ema else None,
-                tx=optax.identity(),
-                apply_ema=None,
-            )
-            assert self.null_state is not None, 'controlnet requires a backbone model'
-            self.gen_state = self.null_state
-            self.null_state = None
-        else:
-            gen_net = MyNoiseModel(**self.mode['noise_model'], training=False)
-            self.gen_state = TrainState.create(
-                apply_fn=gen_net.apply,
-                params={} if use_ema else base_dict['params'],
-                ema=base_dict['ema'] if use_ema else None,
-                tx=optax.identity(),
-                apply_ema=None,
-            )
+        gen_net = MyNoiseModel(**self.mode['noise_model'], training=False)
+        self.gen_state = TrainState.create(
+            apply_fn=gen_net.apply,
+            params={} if use_ema else base_dict['params'],
+            ema=base_dict['ema'] if use_ema else None,
+            tx=optax.identity(),
+            apply_ema=None,
+        )
 
     def save_training_checkpoint(self, path: Path, step: Optional[int] = None):
-        if self.control_state is None:
-            ckptr.save(path, self.unreplicated_control_state, step=step)
-        else:
-            ckptr.save(path, self.unreplicated_gen_state, step=step)
+        ckptr.save(path, self.unreplicated_gen_state, step=step)
 
     def replicate(self):
         print('replicating train state')
         self.gen_state = func_replicate(self.gen_state)
-        if self.control_state is not None:
-            self.control_state = func_replicate(self.control_state)
         if self.null_state is not None:
             self.null_state = func_replicate(self.null_state)
         self.replicated = True
@@ -803,15 +707,6 @@ class Model:
             return self.gen_state
 
     @property
-    def unreplicated_control_state(self):
-        if self.control_state is None:
-            return None
-        if self.replicated:
-            return func_unreplicate(self.control_state)
-        else:
-            return self.control_state
-
-    @property
     def unreplicated_null_state(self):
         if self.null_state is None:
             return None
@@ -822,11 +717,8 @@ class Model:
 
     @property
     def current_step(self):
-        if self.control_state is not None:
-            return self.control_state.step
-        else:
-            assert self.gen_state is not None
-            return self.gen_state.step
+        assert self.gen_state is not None
+        return self.gen_state.step
             
 
     def visulize(self):
@@ -839,24 +731,14 @@ class Model:
             jnp.ones((1, self.embedding_channels)),
             console_kwargs=cargs,
         )
-        if self.mode['control_model'] is not None:
-            ctrl_model = MyControlModel(**self.mode['control_model'], training=False)
-            text += '\n'
-            text += ctrl_model.tabulate(
-                {'params': self.init_rng, 'gaussian': self.init_rng},
-                jnp.ones(self.control_shape),
-                jnp.ones((1, self.embedding_channels)),
-                console_kwargs=cargs,
-            )
         return text
 
     def training_step(self, batch, vis: Report):
         batch = jaxify_batch(batch, allow_scalars=False)
         # 0=>batches, 1=>width, 2=>height, 3=>channels
         self.train_rng, key = jax.random.split(self.train_rng)
-        self.gen_state, self.control_state, loss_info = generator_step_impl(
+        self.gen_state, loss_info = generator_step_impl(
             self.gen_state,
-            self.control_state,
             batch,
             key,
             self.mode,
@@ -870,7 +752,6 @@ class Model:
             self.eval_rng, key = jax.random.split(self.eval_rng)
         uncon_evaluate_step_impl(
             self.unreplicated_gen_state,
-            self.unreplicated_control_state,
             (count, *self.output_shape[1:]),
             key,
             noise_keys,
@@ -885,7 +766,6 @@ class Model:
             self.eval_rng, key = jax.random.split(self.eval_rng)
         training_evaluate_step_impl(
             self.unreplicated_gen_state,
-            self.unreplicated_control_state,
             batch,
             key,
             noise_keys,
@@ -905,7 +785,6 @@ class Model:
             self.eval_rng, key = jax.random.split(self.eval_rng)
         return evaluate_impl(
             self.unreplicated_gen_state,
-            self.unreplicated_control_state,
             self.unreplicated_null_state,
             batch,
             key,

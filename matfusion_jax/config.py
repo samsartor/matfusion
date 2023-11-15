@@ -39,7 +39,6 @@ def uncenter_img(arr, mode):
 
 def model_modes(input_channels, diffusion_channels, condition):
     backbone_inputs = input_channels if condition == 'direct' else 0
-    control_inputs = diffusion_channels + input_channels
     backbone_channels = diffusion_channels
     timestep_channels = 128
 
@@ -56,14 +55,6 @@ def model_modes(input_channels, diffusion_channels, condition):
                'cond_activation': False,
                'features': [128, 256, 512, 512, 1024, 1024],
             },
-            'control_model': {
-               'block': 'convnext',
-               'inputs': control_inputs,
-               'cond_mlp_inputs': timestep_channels,
-               'wrong_heads': True,
-               'cond_activation': False,
-               'features': [128, 256, 512, 512, 1024, 1024],
-            },
             'opt': 'adamw',
             'timestep_channels': timestep_channels,
             'timestep_mult': 1/1000,
@@ -74,12 +65,6 @@ def model_modes(input_channels, diffusion_channels, condition):
                 'block': 'convnext',
                 'inputs': backbone_inputs,
                 'channels': backbone_channels,
-                'cond_mlp_inputs': timestep_channels,
-                'features': [128, 256, 512, 512, 1024, 1024],
-            },
-            'control_model': {
-                'block': 'convnext',
-                'inputs': control_inputs,
                 'cond_mlp_inputs': timestep_channels,
                 'features': [128, 256, 512, 512, 1024, 1024],
             },
@@ -118,13 +103,6 @@ for input_name, input_dict in [
             'condition': 'direct',
             'control_model': None,
         }),
-        ('CLIP', {
-            'condition': 'clip',
-            'control_model': None,
-        }),
-        ('CONTROL', {
-            'condition': 'none',
-        }),
     ]:
         input_channels = input_dict['input_channels']
         condition = cond_dict['condition']
@@ -158,7 +136,6 @@ for model_name, model_dict in model_modes(0, diffusion_channels, 'none'):
         'ema_decay': 0.9999,
         'timestep_mult': 1,
         **model_dict,
-        'control_model': None,
         'channels': diffusion_channels,
         'zero_snr': True,
     }
