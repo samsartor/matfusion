@@ -192,7 +192,11 @@ def generator_step_impl(gen_state, batch, key, mode):
 def evaluate_impl(gen_state, null_state, batch, key, noise_keys, settings, mode):
     x, y, batch_shape = prepare_batch(batch, mode)
     shape = (*batch_shape, mode['channels'])
-    dif = Diffusion.from_mode(mode)
+    if settings.sampler == 'ddim':
+        dif = Diffusion.from_mode(mode)
+    else:
+        # The Euler and Euler_A samplers can't currently cope with zero_snr
+        dif = Diffusion.from_mode({ **mode, 'zero_snr': False })
 
     def info_callback(
         svbrdf,
