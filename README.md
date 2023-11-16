@@ -42,7 +42,7 @@ To compile the `matfusion_jax.data` module, install Rust version 1.65 or higher 
 ```sh
 cargo build --manifest-path dataloader_rs/Cargo.toml --release
 ```
-     
+
 In order to finetune the flash/no-flash model you will also need to pass `--features ndarray-linalg` to cargo, which will download and compile openblas so that the dataloader can simulate imperfect camera alignment between pairs of rendered images.
 
 You may also need a Julia environment compatible with language version 1.7. Also install the required julia packages by running the `julia` command and entering:
@@ -54,20 +54,22 @@ Pkg.add(name="FFTW", version="1.6.0")
 Pkg.add(name="ProgressMeter", version="1.7.2")
 ```
 
+These dependencies are NOT needed if you only use the demo notebooks or otherwise the write code to assemble batches yourself. They are only needed when using our dataset processing code through scripts like `train.py` and `eval.py`.
+
 ## Pretrained Models
 
 The following pretrained models are avalible.
 
-| Model Fintuning | Framework | Version | URL  |
-| --------------- | --------- | ------- | ---- |
-| *Backbone*      | Jax       | 1       | _coming soon_ |
-| Flash           | Jax       | 1       | _coming soon_ |
-| Environment     | Jax       | 1       | _coming soon_ |
-| Flash/No-flash  | Jax       | 1       | _coming soon_ |
-| *Backbone*      | Diffusers | 1       | _coming soon_ |
-| Flash           | Diffusers | 1       | _coming soon_ |
-| Environment     | Diffusers | 1       | _coming soon_ |
-| Flash/No-flash  | Diffusers | 1       | _coming soon_ |
+| Model Finetuning | Framework | Version |  Download |
+| ---------------- | --------- | ------- | --------- |
+| *Backbone*       | Jax       | 1       | [unconditional_v1_jax.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/unconditonal_v1_jax.tar.lz4) |
+| Flash            | Jax       | 1       | [flash_v1_jax.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/flash_v1_jax.tar.lz4) |
+| Environment      | Jax       | 1       | [env_v1_jax.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/env_v1_jax.tar.lz4) |
+| Flash/No-flash   | Jax       | 1       | [fnf_v1_jax.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/fnf_v1_jax.tar.lz4) |
+| *Backbone*       | Diffusers | 1       | [unconditional_v1_diffusers.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/unconditional_v1_diffusers.tar.lz4) |
+| Flash            | Diffusers | 1       | [flash_v1_diffusers.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/flash_v1_diffusers.tar.lz4) |
+| Environment      | Diffusers | 1       | [env_v1_diffusers.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/env_v1_diffusers.tar.lz4) |
+| Flash/No-flash   | Diffusers | 1       | [fnf_v1_diffusers.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/fnf_v1_diffusers.tar.lz4) |
 
 To use any of the pretrained models above, untar the downloaded archive into the `checkpoints` folder.
 
@@ -94,9 +96,7 @@ The inria dataset can be downloaded from https://team.inria.fr/graphdeco/project
 
 ### CC0
 
-_Coming Soon..._
-
-<!--Download and untar TODO into the `datasets` directory so that it contains a `datasets/cc0_svbrdfs` folder.-->
+Download and untar [cc0_svbrdfs.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/cc0_svbrdfs.tar.lz4) into the `datasets` directory so that it contains a `datasets/cc0_svbrdfs` folder.
 
 ### Mixed
 
@@ -114,9 +114,9 @@ To open several background Blender workers to render all the maps over a few day
 
 ### Test Data
 
-Our paper also presents a new test set, made up of diverse SVBRDFs from a variety of sources. Download and untar TODO into the datasets directory so that it contains a `test_svbrdfs` folder.
+Our paper also presents a new test set, made up of diverse SVBRDFs from a variety of sources. Download and untar [test_svbrdf.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/test_svbrdfs.tar.lz4) into the datasets directory so that it contains a `test_svbrdfs` folder.
 
-## Evaluation
+## Compute Error Statistics
 
 You can use the `eval.py` and `score.py` scripts to run rigorous evaluations of MatFusion. For example, to evaluate the
 flash model on our test set (once downloaded), use:
