@@ -9,5 +9,5 @@ loader: !Rendered
   # NOTE: test maps are all rendered at distance 2.0/0.75 = 2.66
   # so that a crop is not needed
   crop: null
-  flash_weight: 0.0
-  other_weight: null
+  flash_weight: 1.0
+  other_weight: !uniform_log_sampled [0.02, 1.5]

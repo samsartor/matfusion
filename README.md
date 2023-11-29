@@ -1,4 +1,4 @@
-# MatFusion
+# MatFusion [[Paper](https://bin.samsartor.com/matfusion.pdf)] [[Website](https://samsartor.com/matfusion)]
 
 ![](https://samsartor.com/matfusion_teaser.png)
 

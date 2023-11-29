@@ -85,6 +85,12 @@ def show_image(arr, **kwargs):
     from IPython.display import display
     display(display_image(arr, **kwargs))
 
+ffmpeg_args = {
+    'vcodec': 'libx264',
+    'vf': 'format=yuv420p',
+    'profile:v': 'main',
+    'crf': 10, # nearly lossless
+}
 
 def save_image_video(path, arr, fps=30, gamma=1.0, **kwargs):
     arr = np.clip(arr, 0, 1)**(1/gamma)
@@ -93,8 +99,7 @@ def save_image_video(path, arr, fps=30, gamma=1.0, **kwargs):
         path,
         fps,
         vid,
-        vcodec='libvpx-vp9',
-        lossless=1,
+        **ffmpeg_args,
         overwrite=True)
 
 
@@ -106,8 +111,7 @@ def save_svbrdf_video(path, arr, fps=30, gamma=1.0, **kwargs):
         path,
         fps,
         vid,
-        vcodec='libvpx-vp9',
-        lossless=1,
+        **ffmpeg_args,
         overwrite=True)
 
 

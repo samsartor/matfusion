@@ -19,6 +19,5 @@ loader: !Rendered
   # NOTE: train maps are all rendered at 53 degree FOV (distance = 2.0)
   # we crop them by 75% which gives a 41.1 degree FOV (distance = 2.66)
   crop: 0.75
-  distance: 2.66
   flash_weight: 1.0
   other_weight: !uniform_log_sampled [0.02, 1.5]
