@@ -81,7 +81,7 @@ Alternatively you can create an `!Images` dataset for your photographs. For exam
 
 ```sh
 python eval.py \
-    --dataset datasets/real_test-materialgan.yml \
+    --dataset datasets/real_test_materialgan.yml \
     --checkpoint checkpoints/flash_v1_jax \
     --output results/flash_v1_on_materialgan`
 ```
@@ -145,6 +145,7 @@ python train.py \
 ### Flash Finetuning
 ```sh
 python train.py \
+    --finetune_checkpoint checkpoints/unconditional_v1_jax \
     --mode CONVNEXT_V1_DIRECT_RAST_IMAGES_MODE \
     --epocs 19 \
     --dataset ./datasets/train_rasterized.yml
@@ -153,6 +154,7 @@ python train.py \
 ### Environment-Lit Finetuning
 ```sh
 python train.py \
+    --finetune_checkpoint checkpoints/unconditional_v1_jax \
     --mode CONVNEXT_V1_DIRECT_RENDERED_IMAGES_MODE \
     --epocs 19 \
     --dataset ./datasets/train_rendered_env.yml
@@ -161,6 +163,7 @@ python train.py \
 ### Flash/No-Flash Finetuning
 ```sh
 python train.py \
+    --finetune_checkpoint checkpoints/unconditional_v1_jax \
     --mode CONVNEXT_V1_DIRECT_RENDERED_OTHER_IMAGES_MODE \
     --epocs 19 \
     --dataset ./datasets/train_rendered_fnf.yml
