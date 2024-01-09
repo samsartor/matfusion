@@ -4,10 +4,10 @@ from tqdm import tqdm
 
 datasets_dir = Path(__file__).absolute().parent.parent / 'datasets'
 input_dir = datasets_dir / 'DeepMaterialsData' / 'trainBlended'
-output_dir = datasets_dir / 'inria_svbrdfs_2'
+output_dir = datasets_dir / 'inria_svbrdfs'
 
 if output_dir.exists():
-    print('Output datasets/inread_svbrdfs directory already exists. Exiting')
+    print('Output datasets/inrea_svbrdfs directory already exists. Exiting')
     exit(1)
 
 (output_dir / 'diffuse').mkdir(parents=True, exist_ok=True)
