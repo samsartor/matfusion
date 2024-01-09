@@ -1,4 +1,4 @@
 [submodule "matfusion_diffusers"]
 	path = matfusion_diffusers
-	url = git@github.com:samsartor/diffusers.git
+	url = https://github.com/samsartor/diffusers.git
 	branch = matfusion
