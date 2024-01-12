@@ -13,6 +13,7 @@ SVBRDF estimation from photographs for three different lighting conditions (dire
     month     = {December},
     year      = {2023},
     booktitle = {ACM SIGGRAPH Asia Conference Proceedings},
+    url       = {https://doi.org/10.1145/3610548.3618194},
 }
 ```
 
@@ -71,13 +72,22 @@ The following pretrained models are avalible.
 | Environment      | Diffusers | 1       | [env_v1_diffusers.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/env_v1_diffusers.tar.lz4) |
 | Flash/No-flash   | Diffusers | 1       | [fnf_v1_diffusers.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/fnf_v1_diffusers.tar.lz4) |
 
-To use any of the pretrained models above, untar the downloaded archive into the `checkpoints` folder.
+To use any of the pretrained models above, untar the downloaded archive into the `checkpoints` folder. For example, before running the flash finetuning for Jax,
+your directory should look like
+```
+checkpoints
+├── flash_v1_jax.tar.lz4
+└── flash_v1_jax
+    ├── checkpoint.msgpack
+    ├── LICENSE.txt
+    └── mode.json
+```
 
 ## Inference
 
 The easiest way to run MatFusion on your own photographs is with the `matfusion_jax_demo.ipynb` and `matfusion_diffusers_demo.ipynb` Jupyter notebooks.
 
-Alternatively you can create an `!Images` dataset for your photographs. For example, the [MaterialGAN](https://github.com/tflsguoyu/materialgan) paper by Yu et al. provides a selection of real flash-lit photographs which you can download from https://www.dropbox.com/s/6k3n5xntelqeypk/in.zip, unzip into the `datasets` directory, and rename to `datasets/materialgan_real_inputs`. Then you can batch-process the test images with `eval.py`.
+Alternatively you can create an `!Images` dataset for your photographs. For example, the [Lookahead SVBRDF](https://github.com/xilongzhou/lookahead_svbrdf) paper by Zhou and Kalantari provides a selection of real flash-lit photographs which you can download from https://drive.google.com/file/d/1kzJicyd9Dn-cGNWJCDqJ4fuh5b_NDajW/view. Unzip into the `datasets` directory and rename the `OurReal` directory to `datasets/lookahead_real_inputs`. Then you can batch-process the test images with `eval.py` as below. That zip file also contains the MaterialGAN eval dataset in the `MGReal` directory, which should be renamed to `datasets/materialgan_real_inputs`.
 
 ```sh
 python eval.py \
@@ -94,15 +104,19 @@ MatFusion was trained on three different datasets of SVBRDFs which each have a s
 
 The inria dataset can be downloaded from https://team.inria.fr/graphdeco/projects/deep-materials/. Unzip it into the `datasets` directory of this repo so that `datasets/DeepMaterialsData` is populated by lots of png files and then run `python scripts/convert_inria.py`. You should see the script create a `datasets/inria_svbrdfs` folder.
 
+These SVBRDFs are distributed under a CC BY-NC-ND 2.0 licence.
+
 ### CC0
 
 Download and untar [cc0_svbrdfs.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/cc0_svbrdfs.tar.lz4) into the `datasets` directory so that it contains a `datasets/cc0_svbrdfs` folder.
 
+These SVBRDFs are collected from PolyHaven and AmbientCG, and are distributed under the CC0 licence.
+
 ### Mixed
 
-_Coming Soon..._
+Download and untar [mixed_svbrdfs.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/mixed_svbrdfs.tar.lz4) into the `datasets` directory so that it contains a `datasets/mixed_svbrdfs` folder.
 
-<!--Download and untar TODO into the `datasets` directory so that it contains a `datasets/mixed_svbrdfs` folder.-->
+These SVBRDFs are derived from the above INREA and CC0 datasets, and so are distributed under a combination of the two licences. This usage of the INREA dataset has been permitted by Adobe.
 
 ### Rendering
 
