@@ -116,7 +116,7 @@ These SVBRDFs are collected from PolyHaven and AmbientCG, and are distributed un
 
 Download and untar [mixed_svbrdfs.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/mixed_svbrdfs.tar.lz4) into the `datasets` directory so that it contains a `datasets/mixed_svbrdfs` folder.
 
-These SVBRDFs are derived from the above INREA and CC0 datasets, and so are distributed under a combination of the two licences. This usage of the INREA dataset has been permitted by Adobe.
+These SVBRDFs are derived from the above INRIA and CC0 datasets, and so are distributed under a combination of the two licences. This usage of the INRIA dataset has been permitted by Adobe.
 
 ### Rendering
 
