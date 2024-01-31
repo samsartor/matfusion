@@ -63,7 +63,7 @@ The following pretrained models are avalible.
 
 | Model Finetuning | Framework | Version |  Download |
 | ---------------- | --------- | ------- | --------- |
-| *Backbone*       | Jax       | 1       | [unconditional_v1_jax.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/unconditonal_v1_jax.tar.lz4) |
+| *Backbone*       | Jax       | 1       | [unconditional_v1_jax.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/unconditional_v1_jax.tar.lz4) |
 | Flash            | Jax       | 1       | [flash_v1_jax.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/flash_v1_jax.tar.lz4) |
 | Environment      | Jax       | 1       | [env_v1_jax.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/env_v1_jax.tar.lz4) |
 | Flash/No-flash   | Jax       | 1       | [fnf_v1_jax.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/fnf_v1_jax.tar.lz4) |
