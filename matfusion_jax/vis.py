@@ -1,4 +1,5 @@
 import numpy as np
+from torch import Tensor
 import jax.numpy as jnp
 import math
 import ffmpegio
@@ -8,9 +9,15 @@ import io
 from pathlib import Path
 from collections import defaultdict
 
+def imnp(img):
+    if isinstance(img, Tensor):
+        return img.permute(0, 2, 3, 1).numpy()
+    else:
+        return np.array(img)
+
 
 def imbytes(img):
-    img = np.array(img)
+    img = imnp(img)
     img = np.nan_to_num(img)
     img = np.clip(img, 0.0, 1.0)
     img *= 255.0
@@ -18,12 +25,12 @@ def imbytes(img):
 
 
 def imcond(img):
-    img = np.array(img)
+    img = imnp(img)
     return np.concatenate(np.dsplit(img, math.ceil(img.shape[2]/3)), axis=-2)
 
 
 def imsvbrdf(img, geo='normals', vertical=False, horizontal=False, **kwargs):
-    img = np.array(img)
+    img = imnp(img)
     roughness = np.tile(img[..., 6:7], (1, 1, 3))
     if geo == 'normals':
         geo = img[..., 7:10]
