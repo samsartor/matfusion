@@ -93,6 +93,7 @@ pub enum Part {
     RenderPos { which: char },
     RenderFlash { which: char },
     RenderEnv { which: char },
+    Image,
 }
 
 impl fmt::Display for Part {
@@ -111,6 +112,7 @@ impl fmt::Display for Part {
             RenderPos { which, .. } => write!(f, "{which}_position"),
             RenderFlash { which, .. } => write!(f, "{which}_flash"),
             RenderEnv { which, .. } => write!(f, "{which}_envio"),
+            Image => write!(f, "image"),
         }
     }
 }
@@ -136,6 +138,13 @@ pub fn data_path(cfg: &DatasetConfig, id: &DataId, part: &Part) -> Result<PathBu
             }
             path
         }
+        (PartThenNamePart, Image) => {
+            let Some(mut path) = dir.images.clone() else {
+                bail!("no images dir")
+            };
+            path.push(format!("{name}_{part}.png"));
+            path
+        }
         (NameThenPart, Diffuse | Albedo | Specular | Roughness | Metalness | Normals | Height) => {
             let Some(mut path) = dir.svbrdfs.clone() else {
                 bail!("no svbrdfs dir")
@@ -145,6 +154,13 @@ pub fn data_path(cfg: &DatasetConfig, id: &DataId, part: &Part) -> Result<PathBu
                 Height => path.push(format!("{part}.exr")),
                 _ => path.push(format!("{part}.png")),
             }
+            path
+        }
+        (NameThenPart, Image) => {
+            let Some(mut path) = dir.images.clone() else {
+                bail!("no images dir")
+            };
+            path.push(format!("{part}.png"));
             path
         }
         (_, SvbrdfMeta { file }) => {

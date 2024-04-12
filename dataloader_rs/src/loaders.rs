@@ -1,6 +1,6 @@
 use crate::{
-    correct_exposure, form_render, form_sensor_noise, form_svbrdf, open_image, search_for_ids,
-    warp, DataId, DatasetConfig, DatasetPath, Sample, SONY_A7S2,
+    correct_exposure, data_path, form_render, form_sensor_noise, form_svbrdf, open_image,
+    search_for_ids, warp, DataId, DatasetConfig, DatasetPath, Sample, SONY_A7S2,
 };
 use anyhow::{anyhow, bail, Error};
 use cgmath::point2;
@@ -38,6 +38,7 @@ pub enum LoaderConfig {
     Rasterized(Rasterized),
     Rendered(Rendered),
     Images(Images),
+    ImagesAndSVBRDFs(ImagesAndSVBRDFs),
 }
 
 impl LoaderConfig {
@@ -46,6 +47,7 @@ impl LoaderConfig {
             LoaderConfig::Rasterized(x) => Arc::new(x),
             LoaderConfig::Rendered(x) => Arc::new(x),
             LoaderConfig::Images(x) => Arc::new(x),
+            LoaderConfig::ImagesAndSVBRDFs(x) => Arc::new(x),
         }
     }
 
@@ -54,6 +56,7 @@ impl LoaderConfig {
             LoaderConfig::Rasterized(x) => x,
             LoaderConfig::Rendered(x) => x,
             LoaderConfig::Images(x) => x,
+            LoaderConfig::ImagesAndSVBRDFs(x) => x,
         }
     }
 }
@@ -148,6 +151,27 @@ impl Loader for Rendered {
         }
         dict.insert("render", Sample::Image(image));
         Ok(Sample::Dict(dict))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ImagesAndSVBRDFs {}
+
+impl Loader for ImagesAndSVBRDFs {
+    fn load_sample(
+        &self,
+        root: &DatasetConfig,
+        id: &DataId,
+        rng: &mut StdRng,
+    ) -> Result<Sample, Error> {
+        let svbrdf = form_svbrdf(root, id, rng, Some(root.resolution), |p| p)?;
+        let path = data_path(root, id, &crate::Part::Image)?;
+        let image = open_image(&path)?;
+        Ok(Sample::Dict(hash_map! {
+            "svbrdf" => Sample::Image(svbrdf),
+            "render" => Sample::Image(image),
+        }))
     }
 }
 
