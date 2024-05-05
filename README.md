@@ -61,16 +61,16 @@ These dependencies are NOT needed if you only use the demo notebooks or otherwis
 
 The following pretrained models are avalible.
 
-| Model Finetuning | Framework | Version |  Download |
-| ---------------- | --------- | ------- | --------- |
-| *Backbone*       | Jax       | 1       | [unconditional_v1_jax.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/unconditional_v1_jax.tar.lz4) |
-| Flash            | Jax       | 1       | [flash_v1_jax.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/flash_v1_jax.tar.lz4) |
-| Environment      | Jax       | 1       | [env_v1_jax.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/env_v1_jax.tar.lz4) |
-| Flash/No-flash   | Jax       | 1       | [fnf_v1_jax.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/fnf_v1_jax.tar.lz4) |
-| *Backbone*       | Diffusers | 1       | [unconditional_v1_diffusers.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/unconditional_v1_diffusers.tar.lz4) |
-| Flash            | Diffusers | 1       | [flash_v1_diffusers.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/flash_v1_diffusers.tar.lz4) |
-| Environment      | Diffusers | 1       | [env_v1_diffusers.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/env_v1_diffusers.tar.lz4) |
-| Flash/No-flash   | Diffusers | 1       | [fnf_v1_diffusers.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/fnf_v1_diffusers.tar.lz4) |
+| Model Finetuning | Framework | Version       |  Download |
+| ---------------- | --------- | ------------- | --------- |
+| *Backbone*       | Jax       | 1 (corrected) | [unconditional_v1_corrected_jax.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/unconditional_v1_corrected_jax.tar.lz4) |
+| Flash            | Jax       | 1             | [flash_v1_jax.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/flash_v1_jax.tar.lz4) |
+| Environment      | Jax       | 1             | [env_v1_jax.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/env_v1_jax.tar.lz4) |
+| Flash/No-flash   | Jax       | 1             | [fnf_v1_jax.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/fnf_v1_jax.tar.lz4) |
+| *Backbone*       | Diffusers | 1 (corrected) | [unconditional_v1_corrected_diffusers.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/unconditional_v1_corrected_diffusers.tar.lz4) |
+| Flash            | Diffusers | 1             | [flash_v1_diffusers.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/flash_v1_diffusers.tar.lz4) |
+| Environment      | Diffusers | 1             | [env_v1_diffusers.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/env_v1_diffusers.tar.lz4) |
+| Flash/No-flash   | Diffusers | 1             | [fnf_v1_diffusers.tar.lz4](https://www.cs.wm.edu/~ppeers/publications/Sartor2023MFA/data/fnf_v1_diffusers.tar.lz4) |
 
 To use any of the pretrained models above, untar the downloaded archive into the `checkpoints` folder. For example, before running the flash finetuning for Jax,
 your directory should look like
