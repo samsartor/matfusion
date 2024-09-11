@@ -9,6 +9,7 @@ use pythonize::depythonize;
 use rayon::prelude::*;
 pub use warp::*;
 pub mod loaders;
+mod rast;
 
 use anyhow::Error;
 use image::{DynamicImage, Rgb32FImage, RgbImage};

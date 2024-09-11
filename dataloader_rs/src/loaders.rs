@@ -1,6 +1,6 @@
 use crate::{
-    correct_exposure, form_render, form_sensor_noise, form_svbrdf, open_image, search_for_ids,
-    warp, DataId, DatasetConfig, DatasetPath, Sample, SONY_A7S2,
+    correct_exposure, form_render, form_sensor_noise, form_svbrdf, open_image, rast,
+    search_for_ids, warp, DataId, DatasetConfig, DatasetPath, Sample, SONY_A7S2,
 };
 use anyhow::{anyhow, bail, Error};
 use cgmath::point2;
@@ -94,8 +94,18 @@ impl Loader for Rasterized {
     ) -> Result<Sample, Error> {
         let svbrdf = form_svbrdf(root, id, rng, Some(root.resolution), |p| p)?;
         let distance = self.distance.sample(rng);
+        let mut raster = Array3::zeros((svbrdf.dim().0, svbrdf.dim().1, 6));
+        rast::render_colocated(
+            svbrdf.view(),
+            raster.view_mut(),
+            distance,
+            distance,
+            &Default::default(),
+        );
         Ok(Sample::Dict(hash_map! {
             "svbrdf" => Sample::Image(svbrdf),
+            "rast_flash" => Sample::Image(raster.slice(s![.., .., 0..3]).to_owned()),
+            "rast_halfway" => Sample::Image(raster.slice(s![.., .., 3..6]).to_owned()),
             "view_distance" => Sample::Scalar(distance),
             "flash_distance" => Sample::Scalar(distance),
             "flash_x" => Sample::Scalar(0.0),
