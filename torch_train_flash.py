@@ -11,15 +11,10 @@ parser.add_argument('--output_checkpoint', type=Path, required=True)
 parser.add_argument('--base_lr', type=float, default=2e-5)
 parser.add_argument('--cosine_lr', type=bool, default=False)
 parser.add_argument('--compile', type=bool, default=False)
-parser.add_argument('--rerun', type=bool, default=False)
 parser.add_argument('--tensorboard', type=bool, default=True)
 args = parser.parse_args()
 
 import json
-from collections import defaultdict
-from copy import deepcopy
-from datetime import datetime
-from time import ctime, time_ns
 from typing import Any
 import diffusers
 import torch
@@ -29,10 +24,7 @@ from tqdm import tqdm
 from matfusion_jax.data import Generator
 import numpy as np
 from einops import rearrange
-if args.rerun:
-    import rerun as rr
-if args.tensorboard:
-    from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 
 
 # Rust object to create training batches
@@ -93,15 +85,6 @@ ddim_schedule = diffusers.schedulers.DDIMScheduler(
     timestep_spacing="linspace",
 )
 
-def rrimage(x: torch.Tensor):
-    x = x.detach().cpu()
-    x = torchvision.utils.make_grid(x, nrow=x.shape[0])
-    x = rearrange(x, 'c w h -> w h c')
-    x = x.clip(0, 1)
-    x = x*255
-    x = x.to(torch.uint8)
-    return rr.Image(x)
-
 @torch.no_grad()
 def eval_model(test_batch):
     model.eval()
@@ -110,7 +93,7 @@ def eval_model(test_batch):
         ema_model.copy_to(model.parameters())
     
     schedule.set_timesteps(20)
-    y = torch.randn(1, 10, 256, 256, device=device, dtype=dtype)
+    y = torch.randn(test_batch['svbrdf'].shape[0], 10, 256, 256, device=device, dtype=dtype)
     y = y * schedule.init_noise_sigma
 
     image = rearrange(torch.tensor(test_batch['rast_flash'], device=device, dtype=dtype), 'b h w c -> b c h w')
@@ -160,10 +143,6 @@ gen.begin()
 print(f'Found {gen.total_samples} training SVBRDFs')
 
 # Setup logging and a progress bar
-if args.rerun:
-    rr_addr = '127.0.0.1:9876'
-    rr.init(Path(__file__).name, spawn=False)
-    rr.connect(rr_addr)
 if args.tensorboard:
     tb_writer = SummaryWriter()
 progress = tqdm(total=args.epocs*gen.total_steps)
@@ -171,13 +150,8 @@ progress = tqdm(total=args.epocs*gen.total_steps)
 # Main training loop
 optimizer = torch.optim.AdamW(model.parameters(), lr=args.base_lr, betas=(0.9, 0.999), weight_decay=1e-2)
 train_step = 0
-loss_ema = 0
-loss_ema_count = 0
 for epoc_num in range(1, args.epocs+1):
     while True:
-        if args.rerun:
-            rr.set_time_sequence('step', train_step)
-
         # Evaluate the model every args.eval_every steps
         if train_step % args.eval_every == 0:
             eval_batch = eval_gen.take()
@@ -192,10 +166,6 @@ for epoc_num in range(1, args.epocs+1):
                 generated[:, 6:7].repeat((1, 3, 1, 1)),
                 generated[:, 7:10],
             ], 3)
-            if args.rerun:
-                rr.log('eval/image', rrimage(image))
-                rr.log('eval/halfway', rrimage(halfway))
-                rr.log('eval/output', rrimage(generated))
             if args.tensorboard:
                 tb_writer.add_images('eval/image', image, train_step)
                 tb_writer.add_images('eval/halfway', halfway, train_step)
@@ -211,11 +181,6 @@ for epoc_num in range(1, args.epocs+1):
         (loss / args.accumulation).backward()
 
         # Log the loss
-        if args.rerun:
-            rr.log("loss", rr.Scalar(loss.item()))
-            loss_ema = (loss.item() + loss_ema * loss_ema_count) / (1 + loss_ema_count)
-            loss_ema_count = min(loss_ema_count + 1, 100)
-            rr.log("smoothloss", rr.Scalar(loss_ema.item()))
         if args.tensorboard:
             tb_writer.add_scalar("loss", loss.item(), train_step)
 
@@ -225,8 +190,6 @@ for epoc_num in range(1, args.epocs+1):
             if args.cosine_lr:
                 lr *= math.cos(train_step / (gen.total_steps * args.epocs) * math.pi) * 0.5 + 0.5
             optimizer.defaults['lr'] = lr
-            if args.rerun:
-                rr.log("lr", rr.Scalar(lr))
             if args.tensorboard:
                 tb_writer.add_scalar("lr", lr, train_step)
             
