@@ -156,7 +156,7 @@ pub fn render(
                 (j as f32 / h as f32) * 2.0 - 1.0,
                 -(i as f32 / h as f32) * 2.0 + 1.0,
                 0.0,
-            ) * 2.0;
+            );
             let wi = wi(p).normalize();
             let wo = wo(p).normalize();
             let hw = (wi + wo).normalize();

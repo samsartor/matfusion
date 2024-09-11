@@ -100,7 +100,11 @@ impl Loader for Rasterized {
             raster.view_mut(),
             distance,
             distance,
-            &Default::default(),
+            &rast::Options {
+                texture_gamma: 1.0,
+                render_gamma: 1.0,
+                ..Default::default()
+            },
         );
         Ok(Sample::Dict(hash_map! {
             "svbrdf" => Sample::Image(svbrdf),
