@@ -54,17 +54,15 @@ assert isinstance(model, diffusers.UNet2DModel)
 model = model.to(device=device, dtype=dtype)
 timestep_mult = model.config.get('timestep_mult', 1/1000)
 
-# An average of the model parameters through training
-ema_model = diffusers.training_utils.EMAModel(model.parameters())
-
 # Direct conditioning
 in_channels = 10 + 3 + 3
 with torch.no_grad():
     new_conv_in = torch.nn.Conv2d(in_channels, model.conv_in.out_channels, kernel_size=3, padding=(1, 1)).to(device=device, dtype=dtype)
-    new_conv_in.weight.copy_(F.pad(model.conv_in.weight, (0, 0, 0, in_channels - model.conv_in.in_channels, 0, 0, 0, 0)))
-    assert model.conv_in.bias is not None and new_conv_in.bias is not None
-    new_conv_in.bias.copy_(F.pad(model.conv_in.bias, (0, in_channels - model.conv_in.in_channels)))
+    new_conv_in.weight.copy_(F.pad(model.conv_in.weight, (0, 0, 0, 0, 0, in_channels - model.conv_in.in_channels, 0, 0)))
 model.conv_in = new_conv_in
+
+# An average of the model parameters through training
+ema_model = diffusers.training_utils.EMAModel(model.parameters())
 
 # Make the model faster to run, given we wait for a long time up-front
 if args.compile:
